@@ -1,0 +1,19 @@
+{
+  "name": "ون بيس - معركة البطاقات",
+  "short_name": "ون بيس TCG",
+  "description": "لعبة بطاقات ون بيس ثلاثية الأبعاد: مبارزات ضد الكمبيوتر وأونلاين، متجر باكات، ومنشئ مجموعات وقادة.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#07111f",
+  "theme_color": "#0a1a2e",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
