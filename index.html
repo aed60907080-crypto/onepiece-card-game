@@ -32,8 +32,10 @@ html,body{-webkit-tap-highlight-color:transparent;touch-action:manipulation;over
 .game .hud{padding-top:max(6px,env(safe-area-inset-top))}
 .hand{padding-bottom:env(safe-area-inset-bottom)}
 @media (max-width:700px){
+  .game{padding-bottom:calc(var(--hcw)*1.397*var(--hpk,.6))}
+  .game .scene{margin-block:auto}
   .hud{gap:5px;padding-inline:6px}
-  .hud .pl{font-size:.7rem;padding-inline-end:6px}
+  .hud .pl{font-size:.7rem;padding-inline-end:6px;max-width:46vw;overflow:hidden}
   .hud .btn.icon{padding:.3em .5em;font-size:.85rem}
   .hud .btn.red{font-size:.8rem;padding:.45em .8em}
   .topbar{gap:6px;padding:8px}
@@ -62,7 +64,7 @@ input{font-family:inherit}
 
 /* ---------- Card ---------- */
 .card{width:var(--cw,90px);height:calc(var(--cw,90px)*1.397);border-radius:calc(var(--cw,90px)*.055);position:relative;flex:none;cursor:pointer;
-  box-shadow:0 3px 8px rgba(0,0,0,.55);transition:box-shadow .25s,translate .25s,scale .25s,rotate .35s,filter .3s;user-select:none;background:#222;font-size:calc(var(--cw,90px)*.13);color:#fff}
+  box-shadow:0 3px 8px rgba(0,0,0,.55);transition:box-shadow .25s,translate .25s,scale .25s,rotate .35s,filter .3s;user-select:none;background:#222;font-size:max(8.5px,calc(var(--cw,90px)*.13));color:#fff}
 .card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;pointer-events:none}
 .card .fb{position:absolute;inset:0;border-radius:inherit;background:linear-gradient(155deg,var(--c1),#111);padding:6%;display:flex;flex-direction:column;justify-content:space-between;text-align:center;font-weight:800;line-height:1.15;border:2px solid rgba(255,255,255,.3)}
 .card .fb b{font-family:'Bangers';font-size:1.3em}
@@ -223,7 +225,7 @@ input{font-family:inherit}
 .scene{perspective:calc(var(--mw)*var(--pm,3.2));perspective-origin:50% 40%;width:100%;display:flex;justify-content:center;align-items:flex-start;height:calc(var(--mw)*var(--sh))}
 .table{transform-style:preserve-3d;transform:translateY(calc(var(--mw)*var(--sy))) rotateX(var(--tilt,30deg));transform-origin:50% 50%;padding:calc(var(--mw)*.022);border-radius:calc(var(--mw)*.03);
   background:linear-gradient(135deg,#5a3a1c,#3a2410 50%,#2a1a0b);box-shadow:0 30px 60px rgba(0,0,0,.7),inset 0 0 0 3px #7a5530,inset 0 0 30px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:calc(var(--mw)*.018);height:max-content}
-.mat{--cw:calc(var(--mw)*.108);position:relative;width:var(--mw);height:calc(var(--mw)*.7075);direction:ltr;border-radius:calc(var(--mw)*.014);flex:none;
+.mat{--cw:calc(var(--mw)*var(--cwr,.125));position:relative;width:var(--mw);height:calc(var(--mw)*.7075);direction:ltr;border-radius:calc(var(--mw)*.014);flex:none;
   background:radial-gradient(ellipse at 40% 45%,rgba(255,255,255,.75),transparent 65%),repeating-linear-gradient(35deg,rgba(0,0,0,.028) 0 2px,transparent 2px 9px),repeating-linear-gradient(-35deg,rgba(0,0,0,.02) 0 1px,transparent 1px 13px),#d9d9d6;
   box-shadow:0 0 0 calc(var(--mw)*.004) #b8b8b4 inset,0 6px 18px rgba(0,0,0,.55);transition:box-shadow .4s}
 .mat.op{transform:rotate(180deg)}
@@ -247,7 +249,7 @@ input{font-family:inherit}
 .z-cost{left:19.1%;top:66.8%;width:62.3%;height:31.6%}
 .z-trash{left:82.6%;top:66.8%;width:16%;height:31.6%}
 .z-char .zc{gap:calc(var(--mw)*.012)}
-.slot{width:calc(var(--cw)*1.18);display:flex;justify-content:center}
+.slot{width:calc(var(--cw)*var(--slotr,1.12));display:flex;justify-content:center}
 .phases{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:calc(var(--mw)*.002)}
 .phases span{background:#555;color:#fff;font-family:Arial,sans-serif;font-weight:700;font-size:calc(var(--mw)*.0135);padding:.25em .7em;border-radius:.4em;white-space:nowrap;transition:.3s}
 .phases span.on{background:linear-gradient(#ffd84a,#e08a00);color:#2a1a00;box-shadow:0 0 12px #ffb300;scale:1.12}
@@ -262,8 +264,8 @@ input{font-family:inherit}
 .dongrp .don+.don{margin-left:calc(var(--cw)*-.74)}
 .dongrp.r .don+.don{margin-left:calc(var(--cw)*-.95)}
 .z-cost .zc{gap:calc(var(--cw)*.5)}
-.hand{--cw:var(--hcw);position:fixed;left:0;right:0;bottom:0;height:calc(var(--hcw)*1.397*.6);display:flex;justify-content:center;align-items:flex-start;z-index:25;pointer-events:none;padding:0 10px}
-.hand .card{pointer-events:auto;margin-inline:calc(var(--hcw)*-.06);box-shadow:0 -4px 14px rgba(0,0,0,.6)}
+.hand{--cw:var(--hcw);position:fixed;left:0;right:0;bottom:0;height:calc(var(--hcw)*1.397*var(--hpk,.6));display:flex;justify-content:center;align-items:flex-start;z-index:25;pointer-events:none;padding:0 10px}
+.hand .card{pointer-events:auto;margin-inline:var(--hm,calc(var(--hcw)*-.06));box-shadow:0 -4px 14px rgba(0,0,0,.6)}
 .hand .card:hover,.hand .card.selected{translate:0 calc(var(--hcw)*-.55);scale:1.15;z-index:10}
 .inspector{position:fixed;top:66px;right:12px;width:310px;max-height:calc(100vh - 80px - var(--hcw)*.84);overflow:auto;z-index:40;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(0,0,0,.5);animation:slidein .25s ease}
 @keyframes slidein{from{opacity:0;transform:translateX(20px)}}
@@ -321,7 +323,7 @@ input{font-family:inherit}
   .hud{flex-wrap:wrap;height:auto}
   .hud .hint{display:none}
   .inspector{top:auto;bottom:0;right:0;left:0;width:auto;border-radius:18px 18px 0 0;max-height:60vh}
-  .insp .big .card{--cw:110px}
+  .insp .big .card{--cw:min(170px,42vw)}
 }
 </style>
 </head>
@@ -2228,7 +2230,7 @@ function startAIGame(deck, diff){
   const others=LEADER_IDS.filter(x=>x!==deck.leader);
   const oppN=others[Math.random()*others.length|0];
   ME=0;
-  G={players:[mkPlayer(0, ACC.name, deck, 'local', ACC.rp), mkPlayer(1, `الكمبيوتر (${DB[oppN].ar})`, {leader:oppN, cards:deckCounts(oppN)}, 'ai', diff==='easy'?120:480)],
+  G={players:[mkPlayer(0, ACC.name, deck, 'local', ACC.rp), mkPlayer(1, 'الكمبيوتر 🤖', {leader:oppN, cards:deckCounts(oppN)}, 'ai', diff==='easy'?120:480)],
      turnPlayer:0, turnCount:0, phase:'setup', selected:null, targeting:null, busy:true, over:false, battle:null, mode:'ai', diff, deckRef:deck};
   beginMatch();
 }
@@ -2416,6 +2418,12 @@ function inspectorHTML(){
     <div class="info">${describe(c)}</div></div>
     ${acts.length?`<div class="acts">${acts.join('')}</div>`:''}</div>`;
 }
+// تداخل بطاقات اليد بحيث تظهر كلها داخل عرض الشاشة
+function handMargin(n){
+  const cw=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hcw'))||90;
+  if (!n) return 0;
+  return Math.min(-cw*.06, (window.innerWidth-34-n*cw)/(2*n));
+}
 function avatar(n){ return `style="background-image:url('${imgOf(n)}')"`; }
 function render(){
   if (!G || SCREEN!=='game') return;
@@ -2441,7 +2449,7 @@ function render(){
       <button class="btn red" data-act="end" ${isMyMain()?'':'disabled'}>إنهاء الدور ⏭</button>
     </div>
     <div class="scene"><div class="table">${matHTML(1-ME)}${matHTML(ME)}</div></div>
-    <div class="hand">${me.hand.map(c=>cardFace(c,{where:'hand'})).join('')}</div>
+    <div class="hand" style="--hm:${handMargin(me.hand.length)}px">${me.hand.map(c=>cardFace(c,{where:'hand'})).join('')}</div>
     ${inspectorHTML()}
   </div>
   ${G.targeting?`<div class="targetbar">🎯 ${G.targeting.prompt} ${G.targeting.allowCancel?`<button class="btn sec sm" data-act="cancelTarget">إلغاء</button>`:''}</div>`:''}
@@ -2450,13 +2458,17 @@ function render(){
 }
 function fit(){
   const W=window.innerWidth, H=window.innerHeight;
-  const hcw=Math.max(70, Math.min(W*.066, 112));
+  const small = W<=700;
+  const hcw = small ? Math.min(104, Math.max(84, W*.26)) : Math.max(78, Math.min(W*.07, 118));   // بطاقات اليد أكبر
+  document.documentElement.style.setProperty('--hcw', hcw+'px');
   const hudH = W<=900 ? 96 : 56;   // شريط الأدوات يلتف في سطرين على الجوال
   // الجوال بالوضع العمودي: ميل أقل ومنظور أبعد لتصبح الحلبة أعرض
   const phone = W<=700 && H>W;
   const g = phone ? {tilt:20, pm:6, sy:-.063, sh:1.41, wr:1.09} : {tilt:38, pm:3.2, sy:-.205, sh:1.255, wr:1.22};
   const mw=Math.max(260, Math.min((W-12)/g.wr, (H-hudH-hcw*1.397*.5)/g.sh, 1200));
   const s=document.documentElement.style;
+  // حجم البطاقات على الحلبة: أكبر على الجوال (المساحات بين البطاقات أضيق)
+  s.setProperty('--cwr', small ? .16 : .125); s.setProperty('--slotr', small ? 1 : 1.12); s.setProperty('--hpk', small ? .88 : .6);
   s.setProperty('--mw', mw+'px'); s.setProperty('--tilt', g.tilt+'deg'); s.setProperty('--pm', g.pm); s.setProperty('--sy', g.sy); s.setProperty('--sh', g.sh);
 }
 window.addEventListener('resize', ()=>{ fit(); if (SCREEN==='game') render(); }); fit();

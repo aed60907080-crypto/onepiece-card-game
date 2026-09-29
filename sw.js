@@ -1,5 +1,5 @@
 // عامل الخدمة: يجعل اللعبة تعمل كتطبيق وبدون إنترنت (عدا المبارزة الأونلاين)
-const VERSION = 'op-tcg-v1';
+const VERSION = 'op-tcg-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
