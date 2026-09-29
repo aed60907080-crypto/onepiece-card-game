@@ -32,6 +32,9 @@ html,body{-webkit-tap-highlight-color:transparent;touch-action:manipulation;over
 .game .hud{padding-top:max(6px,env(safe-area-inset-top))}
 .hand{padding-bottom:env(safe-area-inset-bottom)}
 @media (max-width:700px){
+  .inspector .acts{position:sticky;bottom:-12px;margin:10px -12px -12px;padding:10px 12px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(10,22,40,.97) 18%);z-index:2}
+  .insp .big .card{--cw:min(130px,34vw)}
+  .targetbar{font-size:.8rem;padding:6px 8px 6px 12px;white-space:nowrap;top:auto;bottom:calc(var(--hcw)*1.397*var(--hpk,.6) + 8px)}
   .game{padding-bottom:calc(var(--hcw)*1.397*var(--hpk,.6))}
   .game .scene{margin-block:auto}
   .hud{gap:5px;padding-inline:6px}
@@ -272,7 +275,8 @@ input{font-family:inherit}
 .z-cost .zc{gap:calc(var(--cw)*.5)}
 .hand{--cw:var(--hcw);position:fixed;left:0;right:0;bottom:0;height:calc(var(--hcw)*1.397*var(--hpk,.6));display:flex;justify-content:center;align-items:flex-start;z-index:25;pointer-events:none;padding:0 10px}
 .hand .card{pointer-events:auto;margin-inline:var(--hm,calc(var(--hcw)*-.06));box-shadow:0 -4px 14px rgba(0,0,0,.6)}
-.hand .card:hover,.hand .card.selected{translate:0 calc(var(--hcw)*-.55);scale:1.15;z-index:10}
+.hand .card.selected{translate:0 calc(var(--hcw)*-.55);scale:1.15;z-index:10}
+@media (hover:hover){ .hand .card:hover{translate:0 calc(var(--hcw)*-.55);scale:1.15;z-index:10} }
 .inspector{position:fixed;top:66px;right:12px;width:310px;max-height:calc(100vh - 80px - var(--hcw)*.84);overflow:auto;z-index:40;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(0,0,0,.5);animation:slidein .25s ease}
 @keyframes slidein{from{opacity:0;transform:translateX(20px)}}
 .inspector .x{position:absolute;top:8px;left:8px;background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;z-index:2}
@@ -2847,7 +2851,12 @@ $('#app').addEventListener('click', async e=>{
     if (a==='attack'){
       const att=s.c, tg=attackTargets(att); if (!tg.length) return;
       G.selected=null;
-      const t=await pickTarget('اختر هدف الهجوم على الحلبة', tg, true);
+      // على شاشات اللمس: اختيار الهدف من نافذة ببطاقات كبيرة، لأن اللمس داخل الحلبة ثلاثية الأبعاد
+      // (وحلبة الخصم المقلوبة) لا يُلتقط بدقة في بعض متصفحات الجوال مثل Safari
+      const touch = window.matchMedia('(pointer:coarse)').matches || window.innerWidth<=900;
+      const t = touch
+        ? (await pickCards(ME, tg, {title:'⚔️ اختر هدف الهجوم', max:1, note:`<p>المهاجم: <b>${nm(att)}</b> — القوة <b>${power(att)}</b>. اضغط على البطاقة التي تريد مهاجمتها.</p>`}))[0]
+        : await pickTarget('اختر هدف الهجوم على الحلبة', tg, true);
       if (t && !G.over) doAct('attack', att.uid, t.uid); else render();
       return;
     }
