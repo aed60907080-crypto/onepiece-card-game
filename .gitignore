@@ -2,3 +2,4 @@
 cards/*.png
 # إعدادات محلية
 .claude/
+tools/*.txt

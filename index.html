@@ -78,6 +78,12 @@ input{font-family:inherit}
 .card .hc{position:absolute;top:2%;left:3%;width:1.7em;height:1.7em;border-radius:50%;background:#1f9d57;border:2px solid #fff;display:grid;place-items:center;font-family:'Bangers';font-size:1.1em;z-index:3}
 .card .xc{position:absolute;left:-.3em;top:40%;background:#fff;color:#000;font-family:'Bangers';border-radius:4px;padding:0 .2em;font-size:.95em;z-index:3}
 .card .qty{position:absolute;bottom:4%;left:50%;translate:-50% 0;background:#000d;border:1px solid var(--gold);border-radius:999px;padding:0 .6em;font-weight:900;font-size:1em;white-space:nowrap;z-index:3}
+.setrow{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 0;border-bottom:1px dashed rgba(255,255,255,.08);flex-wrap:wrap}
+.setrow span{font-weight:700}
+.setrow input[type=range]{flex:1;min-width:120px;accent-color:var(--gold)}
+.setsel{background:#0b1830;color:#fff;border:1px solid var(--line);border-radius:10px;padding:.45em .7em;font-family:inherit;font-weight:700;max-width:100%}
+.info .orig{display:block;margin-top:6px;padding:6px 8px;border-radius:8px;background:rgba(255,180,80,.08);border:1px dashed rgba(255,180,80,.35);font-size:.74rem;line-height:1.5}
+.info .orig i{font-style:normal;display:block;text-align:left;color:#e6dcc4}
 .card .clname{position:absolute;left:0;right:0;bottom:0;padding:.35em .3em .45em;background:linear-gradient(transparent,rgba(0,0,0,.85) 30%);border-radius:0 0 inherit inherit;text-align:center;font-weight:900;font-size:1.05em;line-height:1.15;z-index:2;text-shadow:0 1px 3px #000}
 .card .clname small{display:block;font-size:.7em;color:var(--gold);font-weight:800}
 .lm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;--cw:88px;max-height:55vh;overflow:auto;padding:4px}
@@ -332,6 +338,8 @@ input{font-family:inherit}
 <div id="modal" class="hidden"></div>
 <div id="banner"></div>
 
+<script src="cards-data.js"></script>
+<script src="autofx.js"></script>
 <script>
 /* =========================================================
    قاعدة بيانات البطاقات — مجموعة OP-17
@@ -705,7 +713,7 @@ const SETS = {'OP-17':'أقوى المحاربين في العالم (OP-17)', '
 const LEADER_IDS = Object.values(DB).filter(d=>d.t==='L').map(d=>d.n);
 const colorsAr = d => d.colors.map(c=>COLOR_AR[c]).join('/');
 const fits = (d, leaderN) => d.colors.some(c=>DB[leaderN].colors.includes(c));  // لون البطاقة يطابق أحد ألوان القائد
-const unlimited = d => d.en==='Pacifista' && d.n==='OP01-075';
+const unlimited = d => !!d.unlimited || (d.en==='Pacifista' && d.n==='OP01-075');
 function rarity(d){ if (d.rar) return d.rar==='SEC'?'SEC':d.rar; if (d.t==='L') return 'L'; if (d.t==='C'&&d.cost>=9) return 'SR'; if (d.cost>=6) return 'R'; if (d.cost>=3||d.t!=='C') return 'UC'; return 'C'; }
 const RAR_AR = {C:'عادية',UC:'غير شائعة',R:'نادرة',SR:'نادرة جداً',SEC:'سرية',L:'قائد'};
 const RAR_COL = {C:'#c9d3de',UC:'#7fd3ff',R:'#c79bff',SR:'#ffd84a',SEC:'#ff5ec8',L:'#ff8a5e'};
@@ -803,14 +811,20 @@ function markOnce(p, c, key){ P(p).once[c.uid+key] = true; }
 /* =========================================================
    الأصوات والموسيقى (مولّدة بالكامل عبر Web Audio)
    ========================================================= */
-const SETTINGS = (()=>{ try{ return JSON.parse(localStorage.getItem('op17_settings'))||{sfx:true,music:true}; }catch(e){ return {sfx:true,music:true}; } })();
+const SETTINGS = Object.assign({sfx:true, music:true, sfxVol:70, musVol:60, speed:'normal'},
+  (()=>{ try{ return JSON.parse(localStorage.getItem('op17_settings'))||{}; }catch(e){ return {}; } })());
 function saveSettings(){ try{ localStorage.setItem('op17_settings', JSON.stringify(SETTINGS)); }catch(e){} }
+function applySettings(){
+  SPEED = SETTINGS.speed==='fast' ? .55 : 1;
+  if (SFX.master) SFX.master.gain.value=.8*SETTINGS.sfxVol/100;
+  if (SFX.mus) SFX.mus.gain.value=.27*SETTINGS.musVol/100;
+}
 const SFX = {
   ctx:null, master:null, mus:null, timer:null, step:0,
   init(){
     if (!this.ctx){ const AC=window.AudioContext||window.webkitAudioContext; if (!AC) return false;
       this.ctx=new AC(); this.master=this.ctx.createGain(); this.master.gain.value=.55; this.master.connect(this.ctx.destination);
-      this.mus=this.ctx.createGain(); this.mus.gain.value=.16; this.mus.connect(this.ctx.destination); }
+      this.mus=this.ctx.createGain(); this.mus.gain.value=.16; this.mus.connect(this.ctx.destination); applySettings(); }
     if (this.ctx.state==='suspended') this.ctx.resume();
     return true;
   },
@@ -1722,6 +1736,10 @@ async function smileLook(p){
   if (t) await enterField(p,t,'deck');
 }
 Object.assign(FX, FX2);
+afIntegrate();   // كل بطاقات الموقع الأخرى بمحرّك القدرات التلقائي
+for (const d of Object.values(DB)) if (d.t==='L' && !LEADER_IDS.includes(d.n) && !d.custom) LEADER_IDS.push(d.n);
+for (const d of Object.values(DB)) if (!SETS[d.set]) SETS[d.set]=d.set;
+const STARTERS = ['ST01-001','ST02-001','ST03-001','ST04-001'];   // الطاقم الأول عند التسجيل: مجموعات البداية فقط
 // بطاقات OP-17 أُضيف لها حقل "مرة كل دور" الافتراضي؛ بطاقات التفعيل المتكرر تُعلَّم multi
 for (const n of ['044','054','061']) if (FX[n].act) FX[n].act.multi=true;
 
@@ -1778,7 +1796,10 @@ async function hashPw(salt, pw){
 function deckCounts(leaderN){
   const L=DB[leaderN], lt=L.types.filter(t=>t!=='The Four Emperors');
   const score=d=>(d.set===L.set?4:0)+d.types.filter(t=>lt.includes(t)).length*3+(d.t==='C'?1:0)+Math.random();
-  const pool=Object.values(DB).filter(d=>d.t!=='L' && fits(d,leaderN)).sort((a,b)=>score(b)-score(a)).slice(0,16);
+  // قادة مجموعات البداية يحصلون على بطاقات مجموعتهم الرسمية نفسها
+  const stPrefix = /^ST\d+-/.test(L.id) ? L.id.slice(0,5) : null;
+  const pool = stPrefix ? Object.values(DB).filter(d=>d.t!=='L' && d.id.startsWith(stPrefix))
+    : Object.values(DB).filter(d=>d.t!=='L' && fits(d,leaderN)).sort((a,b)=>score(b)-score(a)).slice(0,16);
   const cnt=new Map(pool.map(d=>[d.n,3])); let sum=pool.length*3;
   const desc=[...pool].sort((a,b)=>b.cost-a.cost), asc=[...pool].sort((a,b)=>a.cost-b.cost);
   for (let i=0; sum>50; i=(i+1)%desc.length){ const n=desc[i].n; if (cnt.get(n)>1){ cnt.set(n,cnt.get(n)-1); sum--; } }
@@ -1820,16 +1841,15 @@ async function login(name, pw){
   ACC=a; loadCustoms(); try{ localStorage.setItem('op17_current', name); }catch(e){}
   return null;
 }
-/* ---------- القادة المخصّصون ---------- */
-// تعريف القائد المخصّص: {id, name, img (مفتاح بطاقة للصورة), colors, life, power, like (قائد رسمي تُستعار قدرته)}
-function customDef(cl){
-  const base=DB[cl.like];
-  return {id:cl.id, n:cl.id, t:'L', en:cl.name, ar:cl.name, cost:cl.life, life:cl.life, power:cl.power, counter:0, set:'CUSTOM',
-          types:base.types, kw:[], color:cl.colors[0], colors:cl.colors, attr:base.attr, img:DB[cl.img].id, like:cl.like, custom:true};
+// القادة يُحصل عليهم من الباكات فقط. تنظيف الحسابات القديمة من القادة المخصّصين (أُزيل صانع القادة)
+function loadCustoms(){
+  if (!ACC) return;
+  let changed=false;
+  if (ACC.custom){ delete ACC.custom; changed=true; }
+  for (const d of ACC.decks) if (d.leader && !DB[d.leader]){ d.leader=null; changed=true; }
+  if (changed){ if (!validDecks().some(x=>x.id===ACC.active)) ACC.active=(validDecks()[0]||{}).id; saveAcc(); }
 }
-function registerCustom(cl){ if (cl && DB[cl.like] && DB[cl.img]) DB[cl.id]=customDef(cl); }
-function loadCustoms(){ (ACC && ACC.custom || []).forEach(registerCustom); }
-const ownsLeader = n => !!ACC && (ACC.col[n]>0 || (ACC.custom||[]).some(c=>c.id===n));
+const ownsLeader = n => !!ACC && ACC.col[n]>0;
 function logout(){ ACC=null; try{ localStorage.removeItem('op17_current'); }catch(e){} go('auth'); }
 
 /* =========================================================
@@ -2030,7 +2050,7 @@ async function takeLife(d, banish){
       <div class="modal-btns"><button class="btn" data-act="y">✨ فعّل التريغر</button><button class="btn sec" data-act="n">أضفها إلى يدي</button></div>`, ['y','n']); use=r.a==='y'; }
     if (use){
       sfx('trigger'); showBanner('✨ تريغر!', nm(card)); await sleep(500);
-      if (tr.play){ if (card.def.t==='C' && D.chars.length<5) await enterField(d,card,'life'); else D.trash.push(card); }
+      if (tr.play){ const okc=(!tr.cond||tr.cond(d,card)) && (!tr.pre||await tr.pre(d,card)); if (!okc){ D.hand.push(card); render(); return; } if (card.def.t==='C' && D.chars.length<5) await enterField(d,card,'life'); else D.trash.push(card); }
       else { D.trash.push(card); await tr.run(d,card); }
       render(); return;
     }
@@ -2163,6 +2183,7 @@ async function endTurn(p){
   await setPhase('end', 300);
   const pl=P(p);
   for (const c of [...pl.chars]){ const e=FX_(c).endTurn; if (e && isOnField(c)){ await e(p,c); render(); if (G.over) return; } }
+  if (pl.pendingDon){ setDonActive(p, pl.pendingDon); pl.pendingDon=0; }
   G.players.forEach(x=>[x.leader,...x.chars,...(x.stage?[x.stage]:[])].forEach(c=>c.mods=c.mods.filter(m=>m.until>G.turnCount)));
   startTurn(1-p);
 }
@@ -2255,7 +2276,7 @@ class Net{
     conn.on('close', ()=>{ const was=this.open; this.open=false; if (was && G && !G.over){ G.over=true; openModal(`<h2>📡 انقطع الاتصال</h2><p>غادر الخصم المباراة أو انقطع الاتصال.</p><div class="modal-btns"><button class="btn" data-act="h">🏠 الرئيسية</button></div>`,{h:()=>{ closeModal(); leaveGame(); }}); } });
   }
   onData(m){
-    if (m.t==='hello'){ ONLINE.opp=m; if (m.deck && m.deck.custom) registerCustom(m.deck.custom); if (this.role==='host') startOnlineGame(); return; }
+    if (m.t==='hello'){ ONLINE.opp=m; if (this.role==='host') startOnlineGame(); return; }
     if (this.role==='host'){
       if (m.t==='reply'){ const r=this.pending[m.id]; delete this.pending[m.id]; if (r) r({a:m.a, i:m.i}); }
       else if (m.t==='act') performAction(1, m.act, m.uid, m.tgt);
@@ -2271,7 +2292,7 @@ class Net{
 const ONLINE={deck:null, code:'', status:'', opp:null};
 async function hostRoom(){
   const d=selectedDeck(); if (!d) return;
-  ONLINE.deck={leader:d.leader, cards:d.cards, custom:(ACC.custom||[]).find(c=>c.id===d.leader)||null};
+  ONLINE.deck={leader:d.leader, cards:d.cards};
   ONLINE.code=Array.from({length:6},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.random()*32|0]).join('');
   ONLINE.status='⏳ جاري إنشاء الغرفة...'; renderOnline();
   try{ await loadPeer(); }catch(e){ ONLINE.status='❌ '+e.message; renderOnline(); return; }
@@ -2284,7 +2305,7 @@ async function hostRoom(){
 async function joinRoom(code){
   const d=selectedDeck(); if (!d) return;
   code=code.trim().toUpperCase(); if (code.length<4){ ONLINE.status='❌ أدخل رمز الغرفة'; renderOnline(); return; }
-  ONLINE.deck={leader:d.leader, cards:d.cards, custom:(ACC.custom||[]).find(c=>c.id===d.leader)||null}; ONLINE.status='⏳ جاري الاتصال...'; renderOnline();
+  ONLINE.deck={leader:d.leader, cards:d.cards}; ONLINE.status='⏳ جاري الاتصال...'; renderOnline();
   try{ await loadPeer(); }catch(e){ ONLINE.status='❌ '+e.message; renderOnline(); return; }
   NET=new Net('client'); ME=1;
   NET.peer=new Peer();
@@ -2364,7 +2385,7 @@ function cardFace(c, o={}){
   if (o.extra) extra+=o.extra;
   if (d.custom) extra+=`<div class="clname"><small>${colorsAr(d)} • ❤${d.life} • ${d.power}</small>${esc(d.ar)}</div>`;
   const fb=`<div class="fb"><span>${d.t==='L'?'❤'+d.life:d.cost}</span><span>${esc(d.ar)}</span><b>${d.power||''}</b></div>`;
-  return `<div class="${cls.join(' ')}" data-uid="${c.uid}" ${o.attrs||''} style="--c1:${COLOR[d.color]}">${fb}<img data-img="${d.n}" src="${IMG(d.img||d.id)}" alt="${esc(d.en)}" draggable="false" onerror="this.remove()">${extra}</div>`;
+  return `<div class="${cls.join(' ')}" data-uid="${c.uid}" ${o.attrs||''} style="--c1:${COLOR[d.color]}">${fb}<img data-img="${d.n}" src="${IMG(d.img||d.id)}" alt="${esc(d.en)}" draggable="false" onerror="if(!this.dataset.f){this.dataset.f=1;this.src=this.src.replace('.jpg','.png')}else this.remove()">${extra}</div>`;
 }
 const defFace = (n, o={}) => cardFace({uid:-1, def:DB[n], owner:null, rested:false, don:0, mods:[], sick:false, battlePower:0}, o);
 const back = () => `<div class="card back"></div>`;
@@ -2478,7 +2499,7 @@ window.addEventListener('resize', ()=>{ fit(); if (SCREEN==='game') render(); })
    ========================================================= */
 function go(s){
   SCREEN=s; closeModal(); document.body.classList.toggle('ingame', s==='game'); window.scrollTo(0,0);
-  ({auth:renderAuth, home:renderHome, leaders:renderLeaders, ai:renderAI, online:renderOnline, decks:renderDecks, store:renderStore, rank:renderRank, game:()=>{ fit(); render(); }})[s]();
+  ({auth:renderAuth, home:renderHome, settings:renderSettings, ai:renderAI, online:renderOnline, decks:renderDecks, store:renderStore, rank:renderRank, game:()=>{ fit(); render(); }})[s]();
 }
 function topbar(title){
   const r=rankOf(ACC.rp), d=ACC.decks.find(x=>x.id===ACC.active)||ACC.decks[0];
@@ -2507,7 +2528,7 @@ async function installApp(){
   </div><div class="modal-btns"><button class="btn" data-act="ok">حسناً</button></div>`, {ok:closeModal});
 }
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
-let AUTH={tab:'login', sel:null, starter:'001', err:''};
+let AUTH={tab:'login', sel:null, starter:'ST01-001', err:''};
 function renderAuth(){
   const accs=Object.values(loadAccs());
   if (AUTH.tab==='login' && !accs.length) AUTH.tab='register';
@@ -2524,7 +2545,7 @@ function renderAuth(){
         <div class="two"><div class="field"><label>اسم المستخدم (3-16 حرفاً)</label><input id="ru" maxlength="16" autocomplete="username"></div>
         <div class="field"><label>كلمة المرور</label><input id="rp" type="password" autocomplete="new-password"></div></div>
         <div class="field" style="margin-top:12px"><label>اختر طاقمك الأول (ستحصل على قائده ومجموعة من 50 بطاقة)</label></div>
-        <div class="starters">${LEADER_IDS.map(n=>`<div class="starter ${AUTH.starter===n?'on':''}" data-act="starter" data-n="${n}">${defFace(n)}${DB[n].ar}<br><span style="color:${COLOR[DB[n].color]}">${colorsAr(DB[n])}</span><br><small style="opacity:.6">${DB[n].id.slice(0,4)}</small></div>`).join('')}</div>
+        <div class="starters">${STARTERS.map(n=>`<div class="starter ${AUTH.starter===n?'on':''}" data-act="starter" data-n="${n}">${defFace(n)}${DB[n].ar}<br><span style="color:${COLOR[DB[n].color]}">${colorsAr(DB[n])}</span><br><small style="opacity:.6">${DB[n].id.slice(0,4)}</small></div>`).join('')}</div>
         <div class="err">${AUTH.err}</div>
         <button class="btn" data-act="register" style="width:100%">🏴‍☠️ أنشئ الحساب وابدأ (300 بيري هدية)</button>`}
       <p style="font-size:.72rem;color:#8ea3b8;margin:12px 0 0">الحسابات تُحفظ في هذا المتصفح على هذا الجهاز. يمكن لعدة لاعبين إنشاء حسابات على نفس الجهاز.</p>
@@ -2549,7 +2570,7 @@ function renderHome(){
       <div class="tile" data-act="nav" data-to="online" style="--t1:#1f6fd1;--t2:#0a1f40"><span class="ic">🌐</span><h2>مبارزة ودية أونلاين</h2><p>العب مع صديقك بدون تصنيف — شارك رمز الغرفة</p></div>
       <div class="tile" data-act="nav" data-to="decks" style="--t1:#21935a;--t2:#0a2a1a"><span class="ic">🃏</span><h2>المجموعات</h2><p>أنشئ مجموعة جديدة من بطاقاتك (${vd} صالحة)</p></div>
       <div class="tile" data-act="nav" data-to="store" style="--t1:#d9b21f;--t2:#3a2a05"><span class="ic">🛒</span><h2>المتجر</h2><p>اشترِ باكات — 5 بطاقات في كل باكة</p></div>
-      <div class="tile" data-act="nav" data-to="leaders" style="--t1:#e0662b;--t2:#3a1405"><span class="ic">🎨</span><h2>صانع القادة</h2><p>صمّم قائدك الخاص: الصورة، الاسم، اللون، والقدرة (${(ACC.custom||[]).length})</p></div>
+      <div class="tile" data-act="nav" data-to="settings" style="--t1:#5b6b7e;--t2:#141d28"><span class="ic">⚙️</span><h2>الإعدادات</h2><p>الصوت والموسيقى، سرعة اللعب، التطبيق، والحساب</p></div>
       <div class="tile" data-act="nav" data-to="rank" style="--t1:#8a44cf;--t2:#230d3a"><span class="ic">🏅</span><h2>التصنيف</h2><p>رتبتك ولوحة المتصدرين</p></div>
       <div class="tile" data-act="logout" style="--t1:#34506e;--t2:#0b1830"><span class="ic">🚪</span><h2>تسجيل الخروج</h2><p>بدّل إلى حساب لاعب آخر</p></div>
     </div></div>`;
@@ -2600,7 +2621,7 @@ function renderDecks(){
         ${d.id!==ACC.active&&!iss.length?`<button class="btn sm" data-act="activedeck" data-id="${d.id}">⭐ اجعلها الأساسية</button>`:''}</div>`; }).join('')||'<p>لا توجد مجموعات.</p>'}</div></div>`;
     return;
   }
-  const leaders=[...LEADER_IDS.filter(n=>ACC.col[n]>0), ...(ACC.custom||[]).map(c=>c.id).filter(n=>DB[n])];
+  const leaders=LEADER_IDS.filter(n=>ACC.col[n]>0);
   const col=DE.leader||null;
   const owned=Object.values(DB).filter(d=>d.t!=='L' && col && fits(d,col) && ACC.col[d.n]>0 && (DFILTER==='all'||d.t===DFILTER) && (SFILTER==='all'||d.set===SFILTER)).sort((a,b)=>a.cost-b.cost||a.n.localeCompare(b.n));
   const size=deckSize(DE), iss=deckIssues(DE);
@@ -2616,7 +2637,7 @@ function renderDecks(){
     </div>
     <div class="editor">
       <div class="panel"><div class="filters">${[['all','الكل'],['C','شخصيات'],['E','أحداث'],['S','مراحل']].map(([k,l])=>`<button class="btn sec sm ${DFILTER===k?'on':''}" data-act="dfilter" data-f="${k}">${l}</button>`).join('')}
-        <span style="width:12px"></span>${[['all','كل المجموعات'],...Object.keys(SETS).map(s=>[s,s])].map(([k,l])=>`<button class="btn sec sm ${SFILTER===k?'on':''}" data-act="sfilter" data-f="${k}">${l}</button>`).join('')}</div>
+        <span style="width:12px"></span>${setSelect('sfilter',SFILTER)}</div>
         ${col?`<div class="grid">${owned.map(d=>{ const inD=DE.cards[d.n]||0, mx=maxCopies(d.n); return `<div class="gtile">${defFace(d.n,{cls:inD>=mx?'faded':'',attrs:`data-act="addc" data-n="${d.n}"`,extra:`<div class="qty">${inD}/${mx}</div>`})}
           <div class="row"><button data-act="remc" data-n="${d.n}">−</button><button data-act="addc" data-n="${d.n}">+</button><button data-act="zoomdef" data-n="${d.n}">🔍</button></div></div>`; }).join('')||'<p>لا تملك بطاقات بهذا اللون. اشترِ باكات من المتجر!</p>'}</div>`:'<p>اختر قائداً أولاً.</p>'}
       </div>
@@ -2629,15 +2650,28 @@ function renderDecks(){
 }
 let SFILTER='all';
 const maxCopies = n => Math.min(unlimited(DB[n])?50:4, ACC.col[n]||0);
-const PACKS=[
-  {id:'OP-17', name:'باكة OP-17', price:100, set:'OP-17', leader:'079', tag:'OP-17', desc:'أقوى المحاربين في العالم — 5 بطاقات، نادرة مضمونة'},
-  {id:'OP-01', name:'باكة OP-01', price:100, set:'OP-01', leader:'OP01-003', tag:'OP-01', desc:'فجر الرومانسية — 5 بطاقات، نادرة مضمونة'},
-  {id:'ST', name:'باكة البداية', price:80, set:'ST', leader:'ST01-001', tag:'ST', desc:'من مجموعات البداية ST-01 → ST-04 — 5 بطاقات'},
-  ...COLORS.map(c=>({id:c, name:`باكة ${COLOR_AR[c]}`, price:150, color:c, tag:'★', leader:LEADER_IDS.find(n=>DB[n].color===c), desc:`5 بطاقات من اللون ال${COLOR_AR[c]} من كل المجموعات — نادرة مضمونة`}))];
+// ترتيب المجموعات: OP (الأحدث أولاً) ثم EB ثم PRB ثم ST ثم الترويجية
+const setOrder = s => { const m=s.match(/^([A-Z]+)-?(\d+)/); const g={OP:0,EB:1,PRB:2,ST:3}[m&&m[1]] ?? 4; return [g, m?-(+m[2]):0]; };
+const SET_LIST = () => Object.keys(SETS).sort((a,b)=>{ const x=setOrder(a), y=setOrder(b); return x[0]-y[0]||x[1]-y[1]||a.localeCompare(b); });
+const setCount = s => Object.values(DB).filter(d=>d.set===s&&!d.custom).length;
+function setSelect(act, cur, withAll=true){
+  return `<select class="setsel" data-change="${act}">${withAll?`<option value="all" ${cur==='all'?'selected':''}>كل المجموعات</option>`:''}${SET_LIST().map(s=>`<option value="${s}" ${cur===s?'selected':''}>${esc(SETS[s])} (${setCount(s)})</option>`).join('')}</select>`;
+}
+let STORE_SET='OP-02';
+function packsList(){
+  const setLeader = s => (Object.values(DB).find(d=>d.set===s&&d.t==='L')||Object.values(DB).find(d=>d.set===s)||DB['001']).n;
+  const ss=SETS[STORE_SET]?STORE_SET:SET_LIST()[0];
+  return [
+    {id:'OP-17', name:'باكة OP-17', price:100, set:'OP-17', leader:'079', tag:'OP-17', desc:'أقوى المحاربين في العالم — 5 بطاقات، نادرة مضمونة'},
+    {id:'OP-01', name:'باكة OP-01', price:100, set:'OP-01', leader:'OP01-003', tag:'OP-01', desc:'فجر الرومانسية — 5 بطاقات، نادرة مضمونة'},
+    {id:'SET', name:`باكة ${ss}`, price:100, set:ss, leader:setLeader(ss), tag:ss, desc:'اختر أي مجموعة من القائمة', pick:true},
+    {id:'ALL', name:'باكة كل المجموعات', price:120, leader:'OP01-120', tag:'ALL', desc:`5 بطاقات عشوائية من كل البطاقات (${Object.values(DB).filter(d=>!d.custom).length})`},
+    ...COLORS.map(c=>({id:c, name:`باكة ${COLOR_AR[c]}`, price:150, color:c, tag:'★', leader:STARTERS.find(n=>DB[n].color===c)||LEADER_IDS.find(n=>DB[n].color===c), desc:`5 بطاقات من اللون ال${COLOR_AR[c]} من كل المجموعات — نادرة مضمونة`}))];
+}
 function rollPack(pk){
-  const pool=Object.values(DB).filter(d=>(!pk.set||d.set===pk.set) && (!pk.color||d.colors.includes(pk.color)));
+  const pool=Object.values(DB).filter(d=>!d.custom && (!pk.set||d.set===pk.set) && (!pk.color||d.colors.includes(pk.color)));
   const W={C:52,UC:28,R:13,SR:5,SEC:1,L:2};
-  const roll=(allowed)=>{ const opts=pool.filter(d=>allowed.includes(rarity(d))); const tot=opts.reduce((s,d)=>s+W[rarity(d)],0); let r=Math.random()*tot; for (const d of opts){ r-=W[rarity(d)]; if (r<=0) return d; } return opts[0]; };
+  const roll=(allowed)=>{ let opts=pool.filter(d=>allowed.includes(rarity(d))); if (!opts.length) opts=pool; const tot=opts.reduce((s,d)=>s+W[rarity(d)],0); let r=Math.random()*tot; for (const d of opts){ r-=W[rarity(d)]; if (r<=0) return d; } return opts[0]; };
   const any=['C','UC','R','SR','SEC','L'];
   return [roll(any),roll(any),roll(any),roll(any),roll(['R','SR','SEC','L'])];
 }
@@ -2645,14 +2679,14 @@ function renderStore(){
   $('#app').innerHTML=`<div class="page">${topbar(true)}
     <div class="pagehead"><h1>🛒 المتجر</h1><span class="chip coins" style="font-size:1.1rem">💰 ${ACC.coins} بيري</span></div>
     <p style="color:#c3d3e4;margin-top:-6px">اربح البيري من المبارزات واشترِ باكات لتوسيع مجموعتك وفتح قادة جدد.</p>
-    <div class="packs">${PACKS.map(pk=>`<div class="pack">
-      <div class="packart" style="--p1:${pk.color?COLOR[pk.color]:pk.set==='OP-01'?'#1f6fd1':pk.set==='ST'?'#21935a':'#b3261e'}"><span class="pt">${pk.tag}</span><img src="${IMG(DB[pk.leader].id)}" alt=""><span class="pb">${pk.name}</span></div>
-      <b>${pk.name}</b><small style="color:#c3d3e4">${pk.desc}</small>
+    <div class="packs">${packsList().map(pk=>`<div class="pack">
+      <div class="packart" style="--p1:${pk.color?COLOR[pk.color]:pk.set==='OP-01'?'#1f6fd1':pk.pick?'#8a44cf':pk.id==='ALL'?'#d9b21f':'#b3261e'}"><span class="pt">${pk.tag}</span><img src="${imgOf(pk.leader)}" alt=""><span class="pb">${pk.name}</span></div>
+      <b>${pk.name}</b><small style="color:#c3d3e4">${pk.desc}</small>${pk.pick?setSelect('storeset',STORE_SET,false):''}
       <button class="btn" data-act="buy" data-p="${pk.id}" ${ACC.coins<pk.price?'disabled':''}>💰 ${pk.price} بيري</button></div>`).join('')}</div>
     <div class="panel" style="margin-top:16px"><h3>📊 نسب الندرة</h3><p style="font-size:.85rem;color:#c3d3e4;line-height:1.9">${Object.entries(RAR_AR).map(([k,v])=>`<span style="color:${RAR_COL[k]};font-weight:900">● ${v}</span>`).join(' &nbsp; ')}<br>القادة والبطاقات عالية التكلفة أندر. البطاقة الخامسة في كل باكة نادرة أو أعلى دائماً.</p></div></div>`;
 }
 function buyPack(id){
-  const pk=PACKS.find(x=>x.id===id); if (!pk || ACC.coins<pk.price){ SFX.play('error'); return; }
+  const pk=packsList().find(x=>x.id===id); if (!pk || ACC.coins<pk.price){ SFX.play('error'); return; }
   ACC.coins-=pk.price; SFX.play('coin');
   const cards=rollPack(pk);
   const isNew=cards.map(d=>!(ACC.col[d.n]>0));
@@ -2685,75 +2719,40 @@ function renderRank(){
         <p style="font-size:.8rem;color:#c3d3e4;margin-top:12px">تكسب النقاط بالفوز وتخسر بعضها عند الهزيمة: ضد الكمبيوتر (+25/−10، أو +10/−5 في السهل). المبارزات الودية أونلاين لا تؤثر على التصنيف.</p></div>
     </div></div>`;
 }
-/* ---------- صانع القادة ---------- */
-let CL=null, CLSET='all';
-const OFFICIAL_LEADERS = () => LEADER_IDS.filter(n=>!DB[n].custom);
-function clFix(){ // قواعد التوازن: قائد بلونين حياته 4، والقوة 6000 فقط مع حياة 4
-  if (CL.colors.length>1) CL.life=4;
-  if (CL.power>5000 && CL.life>4) CL.power=5000;
-}
-function renderLeaders(){
-  if (!CL){
-    const list=ACC.custom||[];
-    $('#app').innerHTML=`<div class="page">${topbar(true)}
-      <div class="pagehead"><h1>🎨 صانع القادة</h1><button class="btn" data-act="clnew">➕ قائد جديد</button></div>
-      <p style="color:#c3d3e4;margin-top:-6px">صمّم قائداً خاصاً بك: اختر صورته من بطاقات المجموعة، واسمه، ولونه، وحياته، وقوته، وقدرة يستعيرها من أحد القادة الرسميين. يمكنك تعديله في أي وقت واستخدامه في مجموعاتك.</p>
-      <div class="grid" style="--cw:150px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">${list.map(c=>DB[c.id]?`<div class="gtile">${defFace(c.id)}
-        <div class="row"><button data-act="cledit" data-id="${c.id}" style="width:auto;padding:0 12px">✏ تعديل</button><button data-act="cldel" data-id="${c.id}" style="width:auto;padding:0 12px">🗑</button></div></div>`:'').join('')||'<p>لم تصمّم أي قائد بعد.</p>'}</div></div>`;
-    return;
-  }
-  clFix();
-  const tmp={uid:-1, def:customDef({...CL, id:'CL-preview'}), owner:null, rested:false, don:0, mods:[], sick:false, battlePower:0};
-  const pool=Object.values(DB).filter(d=>!d.custom && (CLSET==='all'||d.set===CLSET)).sort((a,b)=>(b.t==='L')-(a.t==='L')||a.id.localeCompare(b.id));
-  const base=DB[CL.like];
+/* ---------- الإعدادات ---------- */
+function renderSettings(){
+  const tg=(k,on,off)=>`<button class="btn ${SETTINGS[k]?'green':'sec'}" data-act="settg" data-k="${k}">${SETTINGS[k]?on:off}</button>`;
   $('#app').innerHTML=`<div class="page">${topbar(true)}
-    <div class="pagehead"><h1>${CL.isNew?'➕ قائد جديد':'✏ تعديل القائد'}</h1>
-      <button class="btn green" data-act="clsave">💾 حفظ القائد</button><button class="btn sec sm" data-act="clback">رجوع</button></div>
-    <div class="editor" style="grid-template-columns:260px 1fr">
-      <div class="panel" style="text-align:center"><h3>المعاينة</h3><div style="display:flex;justify-content:center;--cw:200px">${cardFace(tmp,{where:'modal'})}</div>
-        <p style="font-size:.8rem;color:#c3d3e4;text-align:right;margin-top:12px"><b style="color:var(--gold)">القدرة:</b> ${FX[CL.like].d}</p>
-        <p style="font-size:.7rem;opacity:.6;text-align:right">مستعارة من ${base.ar} (${base.id}) • الأنواع: ${base.types.join(' / ')}</p></div>
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <div class="panel"><div class="field"><label>اسم القائد</label><input id="clname" value="${esc(CL.name)}" maxlength="22" placeholder="مثال: قبطان البحر الأحمر"></div></div>
-        <div class="panel"><h3>🎨 اللون (واحد أو اثنان)</h3>
-          <div class="chips">${COLORS.map(c=>`<button data-act="clcol" data-c="${c}" class="${CL.colors.includes(c)?'on':''}" style="background:${COLOR[c]}">${COLOR_AR[c]}</button>`).join('')}</div>
-          <h3 style="margin-top:14px">❤ الحياة</h3>
-          <div class="chips">${[4,5].map(v=>`<button data-act="cllife" data-v="${v}" class="${CL.life===v?'on':''}" style="background:#8a1122" ${v===5&&CL.colors.length>1?'disabled':''}>${v}</button>`).join('')}</div>
-          <h3 style="margin-top:14px">⚡ القوة</h3>
-          <div class="chips">${[4000,5000,6000].map(v=>`<button data-act="clpow" data-v="${v}" class="${CL.power===v?'on':''}" style="background:#34506e" ${v===6000&&CL.life>4?'disabled':''}>${v}</button>`).join('')}</div>
-          <p style="font-size:.72rem;opacity:.7">للتوازن: القائد ذو اللونين حياته 4، وقوة 6000 متاحة فقط مع حياة 4.</p></div>
-        <div class="panel"><h3>✨ القدرة (اختر قائداً رسمياً تستعير قدرته)</h3>
-          <div class="ablist2">${OFFICIAL_LEADERS().map(n=>`<div class="ab2 ${CL.like===n?'on':''}" data-act="clab" data-n="${n}">${defFace(n)}<div><b>${DB[n].ar}</b> <small style="opacity:.6">${DB[n].id}</small><p>${FX[n].d}</p></div></div>`).join('')}</div></div>
-        <div class="panel"><h3>🖼 الصورة (اختر أي بطاقة من المجموعة)</h3>
-          <div class="filters">${[['all','الكل'],...Object.keys(SETS).map(s=>[s,s])].map(([k,l])=>`<button class="btn sec sm ${CLSET===k?'on':''}" data-act="clset" data-f="${k}">${l}</button>`).join('')}</div>
-          <div class="lm-grid">${pool.map(d=>defFace(d.n,{cls:CL.img===d.n?'on':'',attrs:`data-act="climg" data-n="${d.n}"`,extra:''}).replace('draggable="false"','draggable="false" loading="lazy"')).join('')}</div></div>
+    <div class="pagehead"><h1>⚙️ الإعدادات</h1></div>
+    <div class="two">
+      <div class="panel"><h3>🔊 الصوت</h3>
+        <div class="setrow"><span>المؤثرات الصوتية</span>${tg('sfx','🔊 تعمل','🔇 متوقفة')}</div>
+        <div class="setrow"><span>مستوى المؤثرات</span><input type="range" min="0" max="100" value="${SETTINGS.sfxVol}" data-set="sfxVol"><b>${SETTINGS.sfxVol}%</b></div>
+        <div class="setrow"><span>الموسيقى</span>${tg('music','🎵 تعمل','🎶 متوقفة')}</div>
+        <div class="setrow"><span>مستوى الموسيقى</span><input type="range" min="0" max="100" value="${SETTINGS.musVol}" data-set="musVol"><b>${SETTINGS.musVol}%</b></div>
+        <h3 style="margin-top:16px">⚡ اللعب</h3>
+        <div class="setrow"><span>سرعة الحركات</span><div class="chips">
+          <button data-act="setspeed" data-v="normal" class="${SETTINGS.speed!=='fast'?'on':''}" style="background:#34506e">عادية</button>
+          <button data-act="setspeed" data-v="fast" class="${SETTINGS.speed==='fast'?'on':''}" style="background:#34506e">سريعة</button></div></div>
+      </div>
+      <div class="panel"><h3>📲 التطبيق</h3>
+        <p style="font-size:.85rem;color:#c3d3e4">ثبّت اللعبة على جوالك (آيفون أو سامسونج) لتفتح بملء الشاشة وتعمل بدون إنترنت.</p>
+        ${isStandalone()?'<p class="ok">✔ اللعبة مثبّتة كتطبيق</p>':'<button class="btn green" data-act="install">📲 ثبّت التطبيق</button>'}
+        <h3 style="margin-top:16px">👤 الحساب</h3>
+        <p style="font-size:.85rem;color:#c3d3e4">${esc(ACC.name)} • ${rankOf(ACC.rp).icon} ${rankOf(ACC.rp).name} • 💰 ${ACC.coins} بيري • 🃏 ${Object.values(ACC.col).reduce((s,v)=>s+v,0)} بطاقة</p>
+        <div class="modal-btns" style="justify-content:flex-start">
+          <button class="btn sec" data-act="logout">🚪 تسجيل الخروج</button>
+          <button class="btn red sm" data-act="delacc">🗑 حذف الحساب</button></div>
+        <p style="font-size:.72rem;opacity:.6;margin-top:12px">الحسابات تُحفظ في هذا المتصفح على هذا الجهاز.</p>
       </div></div></div>`;
 }
-function leaderAction(a, ds){
-  const nameEl=$('#clname'); if (CL && nameEl) CL.name=nameEl.value.trim();
-  if (a==='clnew'){ CL={id:'CL-'+ACC.name+'-'+Date.now().toString(36), name:'', img:'OP01-003', colors:['red'], life:5, power:5000, like:'OP01-001', isNew:true}; return renderLeaders(); }
-  if (a==='cledit'){ CL={...ACC.custom.find(c=>c.id===ds.id)}; return renderLeaders(); }
-  if (a==='cldel'){ const c=ACC.custom.find(x=>x.id===ds.id); openModal(`<h2>🗑 حذف ${esc(c.name)}؟</h2><p>المجموعات التي تستخدمه ستحتاج قائداً جديداً.</p><div class="modal-btns"><button class="btn red" data-act="y">حذف</button><button class="btn sec" data-act="n">إلغاء</button></div>`,
-      {y:()=>{ ACC.custom=ACC.custom.filter(x=>x.id!==ds.id); delete DB[ds.id]; ACC.decks.forEach(d=>{ if (d.leader===ds.id) d.leader=null; }); if (!validDecks().some(x=>x.id===ACC.active)) ACC.active=(validDecks()[0]||{}).id; saveAcc(); closeModal(); renderLeaders(); }, n:closeModal}); return; }
-  if (!CL) return;
-  if (a==='clback'){ CL=null; return renderLeaders(); }
-  if (a==='clcol'){ const c=ds.c; if (CL.colors.includes(c)){ if (CL.colors.length>1) CL.colors=CL.colors.filter(x=>x!==c); } else CL.colors=CL.colors.length>=2?[CL.colors[1],c]:[...CL.colors,c]; SFX.play('select'); return renderLeaders(); }
-  if (a==='cllife'){ CL.life=+ds.v; if (CL.life>4 && CL.power>5000) CL.power=5000; return renderLeaders(); }
-  if (a==='clpow'){ CL.power=+ds.v; return renderLeaders(); }
-  if (a==='clab'){ CL.like=ds.n; SFX.play('select'); return renderLeaders(); }
-  if (a==='climg'){ CL.img=ds.n; SFX.play('select'); const sc=document.querySelector('.lm-grid').scrollTop; renderLeaders(); document.querySelector('.lm-grid').scrollTop=sc; return; }
-  if (a==='clset'){ CLSET=ds.f; return renderLeaders(); }
-  if (a==='clsave'){
-    if (CL.name.length<2){ toast('اكتب اسماً للقائد (حرفان على الأقل)'); SFX.play('error'); return; }
-    clFix(); const {isNew, ...cl}=CL;
-    ACC.custom=ACC.custom||[];
-    const i=ACC.custom.findIndex(x=>x.id===cl.id); if (i>=0) ACC.custom[i]=cl; else ACC.custom.push(cl);
-    registerCustom(cl);
-    // تنظيف المجموعات التي تستخدمه من البطاقات التي لم تعد تناسب ألوانه
-    ACC.decks.forEach(d=>{ if (d.leader===cl.id) for (const k of Object.keys(d.cards)) if (!fits(DB[k],cl.id)) delete d.cards[k]; });
-    saveAcc(); SFX.play('coin'); toast(isNew?'✔ تم إنشاء القائد — تجده الآن في منشئ المجموعات':'✔ تم حفظ التعديلات');
-    CL=null; return renderLeaders();
-  }
+function settingsAction(a, ds){
+  if (a==='settg'){ toggleSetting(ds.k); return true; }
+  if (a==='setspeed'){ SETTINGS.speed=ds.v; saveSettings(); applySettings(); renderSettings(); return true; }
+  if (a==='delacc'){ openModal(`<h2>🗑 حذف الحساب؟</h2><p>سيُحذف حساب <b>${esc(ACC.name)}</b> نهائياً مع كل بطاقاته ومجموعاته ونقاطه. لا يمكن التراجع.</p>
+      <div class="modal-btns"><button class="btn red" data-act="y">حذف نهائياً</button><button class="btn sec" data-act="n">إلغاء</button></div>`,
+      {y:()=>{ const accs=loadAccs(); delete accs[ACC.name]; saveAccs(accs); closeModal(); logout(); }, n:closeModal}); return true; }
+  return false;
 }
 function showRules(){
   openModal(`<h2>📜 قوانين اللعبة</h2><div class="rules">
@@ -2790,6 +2789,7 @@ $('#app').addEventListener('click', async e=>{
     if (a==='music') return toggleSetting('music');
     if (a==='rules') return showRules();
     if (a==='install') return installApp();
+    if (SCREEN==='settings' && settingsAction(a, ds)) return;
     if (a==='nav'){ if (NET && !G){ NET.close(); NET=null; ONLINE.status=''; } return go(ds.to); }
     // تسجيل الدخول
     if (a==='atab'){ AUTH.tab=ds.t; AUTH.err=''; return renderAuth(); }
@@ -2832,7 +2832,6 @@ $('#app').addEventListener('click', async e=>{
       if (a==='closedeck'){ DE=null; return renderDecks(); }
     }
     // صانع القادة
-    if (a.startsWith('cl') && !['cleardeck','closedeck'].includes(a)) return leaderAction(a, ds);
     // المتجر
     if (a==='buy') return buyPack(ds.p);
     // اللعبة
@@ -2863,12 +2862,27 @@ $('#app').addEventListener('click', async e=>{
   G.selected = G.selected===uid ? null : uid; SFX.play('select');
   render();
 });
+// قوائم اختيار المجموعات
+// أشرطة مستوى الصوت
+$('#app').addEventListener('input', e=>{
+  const r=e.target.closest('[data-set]'); if (!r) return;
+  SETTINGS[r.dataset.set]=+r.value; saveSettings(); applySettings();
+  const b=r.nextElementSibling; if (b) b.textContent=r.value+'%';
+  if (r.dataset.set==='sfxVol') SFX.play('click');
+});
+$('#app').addEventListener('change', e=>{
+  const s=e.target.closest('[data-change]'); if (!s) return;
+  const v=s.value, k=s.dataset.change;
+  if (k==='sfilter'){ SFILTER=v; const nameEl=$('#dname'); if (DE&&nameEl) DE.name=nameEl.value.trim()||DE.name; renderDecks(); }
+  else if (k==='storeset'){ STORE_SET=v; renderStore(); }
+});
 document.addEventListener('keydown', e=>{
   if (e.key==='Escape' && G && SCREEN==='game'){ if (G.targeting && G.targeting.allowCancel) resolveTarget(null); else if (G.selected){ G.selected=null; render(); } }
   if (e.key==='Enter' && SCREEN==='auth'){ const b=$(AUTH.tab==='login'?'[data-act=login]':'[data-act=register]'); if (b) b.click(); }
 });
 
 // البداية
+applySettings();
 (()=>{ let cur=null; try{ cur=localStorage.getItem('op17_current'); }catch(e){}
   const a=cur && loadAccs()[cur]; if (a){ ACC=a; loadCustoms(); go('home'); } else go('auth'); })();
 </script>

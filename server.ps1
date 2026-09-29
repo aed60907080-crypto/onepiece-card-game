@@ -17,7 +17,7 @@ while ($l.IsListening) {
       $bytes = [IO.File]::ReadAllBytes($file)
       $ext = [IO.Path]::GetExtension($file).ToLower()
       $ctx.Response.ContentType = $(if ($types[$ext]) { $types[$ext] } else { 'application/octet-stream' })
-      $ctx.Response.Headers.Add('Cache-Control', 'max-age=86400')
+      $ctx.Response.Headers.Add('Cache-Control', $(if ($ext -eq '.jpg' -or $ext -eq '.png') { 'max-age=86400' } else { 'no-cache' }))
       $ctx.Response.OutputStream.Write($bytes, 0, $bytes.Length)
     } else { $ctx.Response.StatusCode = 404 }
   } catch {} finally { $ctx.Response.Close() }
